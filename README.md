@@ -1,4 +1,51 @@
-# MGSDATool
+# Modded DATMovieTool
+If you faced issues with original tool with MGS4 demo.dat have hang issues in some cutscenes, use this tool, otherwise you are good to go with the original tool.
+
+extract the subtitles with this tool 
+```
+DATMovieTool.exe -e -mgs4 demo.dat folder
+```
+Generated xml will have each Size in bytes for each SubtitlePacket like this
+
+```
+<?xml version="1.0" encoding="utf-8"?>
+<MovieSubtitle>
+  <Subtitles>
+    <Subtitle StreamId="4" BaseStartTime="0" TotalTextSize="1322">
+      <Texts>
+        <Text StartTime="11410" EndTime="12134" LanguageId="5" TextSize="85">Un héroe siempre leal a las llamas de la guerra,|descansa en Outer Heaven. 193X-1999</Text>
+        <Text StartTime="11410" EndTime="12134" LanguageId="4" TextSize="86">Un eroe eternamente devoto alle fiamme della guerra,|riposa in Outer Heaven. 193X-1999</Text>
+        <Text StartTime="11410" EndTime="12134" LanguageId="3" TextSize="89">Ein Held, stets den Flammen des Krieges treu ergeben,|ruht nun in Outer Heaven. 193X-1999</Text>
+        <Text StartTime="11410" EndTime="12134" LanguageId="2" TextSize="85">Un héros à jamais loyal aux flammes de la guerre,|repose en Outer Heaven. 193X-1999</Text>
+...etc
+```
+Replace LanguageId="1" texts with your Subtitles
+
+after editing and saving your custom subtitles
+
+Use the below command to make your texts size equal to original
+```
+DATMovieTool.exe -b -mgs4 sizeslist.txt input_Folder Output_Folder
+```
+You will have you files ready to import to demo.dat
+
+However, there is one catch
+
+Generated xml top 2 rows will be like below
+```
+<?xml version="1.0"?>
+<MovieSubtitle xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+```
+& Before importing You have to manually change them to
+```
+<?xml version="1.0" encoding="utf-8"?>
+<MovieSubtitle>
+```
+
+Original Readme below
+----
+MGSDATool
+
 Metal Gear Solid 3/4 translation toolkit
 
 This is a toolkit for translating Metal Gear Solid 3: Subsistence and Metal Gear Solid 4: Guns of the Patriots.
