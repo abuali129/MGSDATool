@@ -55,11 +55,12 @@ namespace DATMovieTool
             TextOut.PrintSuccess("Finished!");
         }
 
+
         private static void Balance(string ListFile, string InputFolder, string OutputFolder)
         {
             // Read the list file and group entries by XML filename
             var sizeMap = File.ReadAllLines(ListFile)
-                .Where(line => !string.IsNullOrWhiteSpace(line)) // Ignore empty lines
+                .Where(line => !string.IsNullOrWhiteSpace(line))
                 .Select(line => line.Split('\t'))
                 .GroupBy(parts => parts[0]) // Group by XML filename
                 .ToDictionary(
@@ -79,19 +80,19 @@ namespace DATMovieTool
                 }
         
                 var subtitle = GetSubtitle(xmlFilePath);
-                var sizes = sizeMap[fileName];
+                var originalSizes = sizeMap[fileName];
         
                 // Check if the number of subtitle packets matches the list entries
-                if (subtitle.Subtitles.Count != sizes.Count)
+                if (subtitle.Subtitles.Count != originalSizes.Count)
                 {
-                    TextOut.PrintError($"Mismatch in {fileName}: {subtitle.Subtitles.Count} packets vs {sizes.Count} sizes. Skipping.");
+                    TextOut.PrintError($"Mismatch in {fileName}: {subtitle.Subtitles.Count} packets vs {originalSizes.Count} sizes. Skipping.");
                     continue;
                 }
         
                 for (int i = 0; i < subtitle.Subtitles.Count; i++)
                 {
                     var packet = subtitle.Subtitles[i];
-                    var originalTotal = sizes[i];
+                    var originalTotal = originalSizes[i];
         
                     // Calculate total size of LanguageId=1 texts
                     uint sumL1 = (uint)packet.Texts.Where(t => t.LanguageId == 1).Sum(t => t.TextSize);
@@ -115,44 +116,60 @@ namespace DATMovieTool
                     }
                 }
         
-                // Serialize to a temporary file and post-process XML
+                // Serialize to a temporary file with custom settings
                 var tempFile = Path.GetTempFileName();
                 try
                 {
                     var serializer = new XmlSerializer(typeof(MovieSubtitle));
-                    using (var stream = new FileStream(tempFile, FileMode.Create))
+                    
+                    // Configure XML writer settings
+                    var settings = new XmlWriterSettings
                     {
-                        serializer.Serialize(stream, subtitle);
+                        Encoding = Encoding.UTF8, // Enforce UTF-8 encoding
+                        Indent = true, // Optional: pretty formatting
+                        OmitXmlDeclaration = false // Ensure <?xml ...?> is included
+                    };
+        
+                    // Suppress default namespaces
+                    var namespaces = new XmlSerializerNamespaces();
+                    namespaces.Add("", "");
+        
+                    using (var stream = new FileStream(tempFile, FileMode.Create))
+                    using (var writer = XmlWriter.Create(stream, settings))
+                    {
+                        serializer.Serialize(writer, subtitle, namespaces);
                     }
         
-                    // Replace self-closing tags with explicit closing tags
+                    // Post-process XML to enforce explicit closing tags for <Text> elements
                     string xmlContent = File.ReadAllText(tempFile);
                     xmlContent = Regex.Replace(xmlContent, @"(<Text\b[^>]*)\s*/>", "$1></Text>");
                     File.WriteAllText(Path.Combine(OutputFolder, fileName), xmlContent);
                 }
                 finally
                 {
-                    File.Delete(tempFile); // Clean up temporary file
+                    File.Delete(tempFile); // Clean up
                 }
             }
         
             TextOut.PrintSuccess("Balancing completed!");
         }
-
+        
         private static string TruncateText(string text, uint newByteLength)
         {
-			if (newByteLength == 0)
-				return string.Empty; // Explicitly return empty string for TextSize=0
-			byte[] bytes = Encoding.UTF8.GetBytes(text);
-            if (bytes.Length <= newByteLength) return text;
+            if (newByteLength == 0)
+                return string.Empty; // Explicitly return empty string for TextSize=0
         
+            byte[] bytes = Encoding.UTF8.GetBytes(text);
+            if (bytes.Length <= newByteLength)
+                return text;
+        
+            // Truncate to valid UTF-8 boundaries
             var truncatedBytes = new byte[newByteLength];
-            Array.Copy(bytes, truncatedBytes, (int)newByteLength); // Cast to int
+            Array.Copy(bytes, truncatedBytes, newByteLength);
         
-            // Handle partial UTF-8 characters
-            int charCount = Encoding.UTF8.GetCharCount(truncatedBytes, 0, (int)newByteLength); // Cast to int
+            int charCount = Encoding.UTF8.GetCharCount(truncatedBytes, 0, (int)newByteLength);
             int validByteCount = Encoding.UTF8.GetByteCount(
-                Encoding.UTF8.GetChars(truncatedBytes, 0, (int)newByteLength) // Cast to int
+                Encoding.UTF8.GetChars(truncatedBytes, 0, (int)newByteLength)
             );
         
             if (validByteCount < newByteLength)
@@ -163,7 +180,6 @@ namespace DATMovieTool
         
             return Encoding.UTF8.GetString(truncatedBytes);
         }
-
         private static void PrintUsage()
         {
             Console.ForegroundColor = ConsoleColor.White;
