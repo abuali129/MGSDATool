@@ -1,7 +1,7 @@
 # Modded DATMovieTool
 If you faced issues with original tool with MGS4 demo.dat have hang issues in some cutscenes, use this tool, otherwise you are good to go with the original tool.
 
-Note: this will only on MGS4
+Note: this will works only on MGS4
 ---
 extract the subtitles with this tool 
 ```
