@@ -1,3 +1,66 @@
+# Modded DATSpeechTool
+If you faced issues with modding Speech.dat using the original tool, have hang issues in-game or some lines not apperaing as they should, use this tool, otherwise you are good to go with the original tool.
+
+---
+extract the .SPC from speech.dat with this tool or the original tool
+```
+DATSpeechTool.exe -xdat scenerio.gcx speech.dat out_folder
+```
+Note: scenerio.gcx the one from stage>init folder
+
+Use my tool to extract the texts from .SPC to .XML file using this command
+```
+DATSpeechTool.exe -xspc demo_gencho_hdd.spc demo_gencho_hdd.xml
+```
+or if you want to extract all texts from all available .SPC in current folder, move DATSpeechTool.exe into that folder and run this command
+```
+DATSpeechTool.exe -xspcall
+```
+Generated xml will have each Size in bytes for each SubtitlePacket like this
+
+```
+<?xml version="1.0" encoding="utf-8"?>
+<SpeechSubtitle>
+  <Dialogs>
+    <Dialog>
+      <Subtitles>
+        <Subtitle BaseStartTime="0" TotalTextSize="603">
+          <Texts>
+            <Text StartTime="69" EndTime="1336" LanguageId="5" TextSize="55">Los Patriots intentan proteger su poder,|sus intereses,</Text>
+            <Text StartTime="69" EndTime="1336" LanguageId="4" TextSize="74">I Patriots stanno cercando di proteggere|il loro potere, i loro interessi,</Text>
+            <Text StartTime="69" EndTime="1336" LanguageId="3" TextSize="76">Die Patriots versuchen, ihre Macht und|ihre eigenen Interessen zu schützen,</Text>
+            <Text StartTime="69" EndTime="1336" LanguageId="2" TextSize="51">En contrôlant les flux d'informations|numériques,</Text>
+            <Text StartTime="69" EndTime="1336" LanguageId="1" TextSize="70">The Patriots are trying to protect|their power, their own interests...</Text>
+            <Text StartTime="1351" EndTime="2465" LanguageId="5" TextSize="52">controlando la circulación digital de|información.</Text>
+            <Text StartTime="1351" EndTime="2465" LanguageId="4" TextSize="51">controllando il flusso digitale delle|informazioni.</Text>
+            <Text StartTime="1351" EndTime="2465" LanguageId="3" TextSize="56">indem sie den digitalen Informationsfluss|kontrollieren.</Text>
+            <Text StartTime="1351" EndTime="2465" LanguageId="2" TextSize="71">les Patriotes essaient de protéger leur|pouvoir et leurs intérêts...</Text>
+            <Text StartTime="1351" EndTime="2465" LanguageId="1" TextSize="47">By controlling the digital flow of information.</Text>
+          </Texts>
+        </Subtitle>
+...etc
+```
+Replace LanguageId="1" texts with your Subtitles
+
+after editing and saving your custom subtitles
+
+Use the below command to make your texts size equal to original
+```
+DATSpeechTool.exe -b Speech.file_sizes.txt input_Folder Output_Folder
+```
+You will have you files ready to import in .SPC from the output folder, copy all the xml files from output folder to the folder that contains the .SPC files 
+
+then run this command
+```
+DATSpeechTool.exe -ispcall
+```
+
+Then run the below command to create scenerio.gcx & speech.dat
+```
+tool -cdat scenerio.gcx speech.dat in_folder 
+```
+Note: you have to reinstall the game files in the PS3 or RPCS3 to have update speech.dat working
+
 # Modded DATMovieTool
 If you faced issues with original tool with MGS4 demo.dat have hang issues in some cutscenes, use this tool, otherwise you are good to go with the original tool.
 
