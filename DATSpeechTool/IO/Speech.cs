@@ -1,21 +1,16 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Xml;
 using System.Xml.Serialization;
-
+using System.Linq;
 using DATSpeechTool.IO.Packet;
 
 namespace DATSpeechTool.IO
 {
-    /// <summary>
-    ///     Metal Gear Solid 4 speech.dat subtitle handling.
-    /// </summary>
     public class Speech
     {
-        /// <summary>
-        ///     Represents a speech dialog with one or more subtitle segments.
-        /// </summary>
         public class SpeechDialog
         {
             [XmlArrayItem("Subtitle")]
@@ -26,9 +21,6 @@ namespace DATSpeechTool.IO
                 Subtitles = new List<SubtitlePacket>();
             }
         }
-        /// <summary>
-        ///     Represents a group of subtitles.
-        /// </summary>
         public class SpeechSubtitle
         {
             [XmlArrayItem("Dialog")]
@@ -39,12 +31,6 @@ namespace DATSpeechTool.IO
                 Dialogs = new List<SpeechDialog>();
             }
         }
-
-        /// <summary>
-        ///     Extracts the subtitles from a *.spc file to a *.xml file.
-        /// </summary>
-        /// <param name="Speech">The input *.spc file path</param>
-        /// <param name="OutFile">The output *.xml file path</param>
         public static void Extract(string Speech, string OutFile)
         {
             using (FileStream Input = new FileStream(Speech, FileMode.Open))
@@ -52,12 +38,6 @@ namespace DATSpeechTool.IO
                 Extract(Input, OutFile);
             }
         }
-
-        /// <summary>
-        ///     Extracts the subtitles from a *.spc file to a *.xml file.
-        /// </summary>
-        /// <param name="Speech">The input *.spc file Stream</param>
-        /// <param name="OutFile">The output *.xml file path</param>
         public static void Extract(Stream Speech, string OutFile)
         {
             SpeechSubtitle Output = new SpeechSubtitle();
@@ -101,7 +81,7 @@ namespace DATSpeechTool.IO
             NameSpaces.Add(string.Empty, string.Empty);
             XmlWriterSettings Settings = new XmlWriterSettings
             {
-                Encoding = Encoding.UTF8,
+                Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
                 Indent = true
             };
 
@@ -112,12 +92,6 @@ namespace DATSpeechTool.IO
                 Serializer.Serialize(Writer, Output, NameSpaces);
             }
         }
-
-        /// <summary>
-        ///     Inserts the subtitles from a *.xml into a *.spc file.
-        /// </summary>
-        /// <param name="Speech">The output *.spc file path</param>
-        /// <param name="InFile">The input *.xml file path</param>
         public static void Insert(string Speech, string InFile)
         {
             using (FileStream Input = new FileStream(Speech, FileMode.Open))
@@ -125,12 +99,6 @@ namespace DATSpeechTool.IO
                 Insert(Input, InFile);
             }
         }
-
-        /// <summary>
-        ///     Inserts the subtitles from a *.xml into a *.spc file.
-        /// </summary>
-        /// <param name="Speech">The output *.spc file Stream</param>
-        /// <param name="InFile">The input *.xml file path</param>
         public static void Insert(Stream Speech, string InFile)
         {
             SpeechSubtitle Input;
@@ -214,12 +182,6 @@ namespace DATSpeechTool.IO
                 Speech.Write(Output.ToArray(), 0, (int)Output.Length);
             }
         }
-
-        /// <summary>
-        ///     Gets the Address on the *.spc file where the Header is located.
-        /// </summary>
-        /// <param name="Reader">The *.spc file</param>
-        /// <returns>The Header Address</returns>
         public static uint GetHeaderPosition(byte[] Data)
         {
             using (MemoryStream Input = new MemoryStream(Data))
@@ -228,12 +190,6 @@ namespace DATSpeechTool.IO
                 return GetHeaderPosition(Reader);
             }
         }
-
-        /// <summary>
-        ///     Gets the Address on the *.spc file where the Header is located.
-        /// </summary>
-        /// <param name="Reader">The Reader of the Stream</param>
-        /// <returns>The Header Address</returns>
         public static uint GetHeaderPosition(EndianBinaryReader Reader)
         {
             uint Position = (uint)Reader.BaseStream.Length - 0x800;
@@ -246,5 +202,8 @@ namespace DATSpeechTool.IO
 
             return Position;
         }
+		
+
+		
     }
 }
