@@ -29,7 +29,7 @@ namespace MGSShared
 
         private static string MGS2Text(string Text)
         {
-            Text = Text.Replace(((char)0xa).ToString(), Environment.NewLine);
+            Text = Text.Replace(((char)0xa).ToString(), "|");
             Text = Text.Replace(((char)0).ToString(), "[end]");
 
             return Text;
@@ -48,7 +48,7 @@ namespace MGSShared
 
         private static string Text2MGS(string Text)
         {
-            Text = Text.Replace(Environment.NewLine, ((char)0xa).ToString());
+            Text = Text.Replace("|", ((char)0xa).ToString());
             Text = Text.Replace("[end]", ((char)0).ToString());
 
             return Text;
