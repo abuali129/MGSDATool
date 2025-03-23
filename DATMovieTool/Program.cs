@@ -17,6 +17,7 @@ namespace DATMovieTool
     {
         static void Main(string[] args)
         {
+			Console.Clear();
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("DATMovieTool by gdkchan / Modded by VHussian");
             Console.WriteLine("MGS movie.dat subtitle extractor/inserter & xml balancer");
@@ -25,6 +26,7 @@ namespace DATMovieTool
 			Console.WriteLine("Working only for MGS4");
             Console.ResetColor();
             Console.Write(Environment.NewLine);
+			int currentLinePosition = Console.CursorTop;
 
             if (args.Length != 4 && args.Length != 5) // Allow for new command
             {
@@ -44,8 +46,8 @@ namespace DATMovieTool
 
                 switch (args[0])
                 {
-                    case "-e": Extract(args[2], args[3], Game); break;
-                    case "-i": Insert(args[2], args[3], Game); break;
+                    case "-e": Extract(args[2], args[3], Game, currentLinePosition); break;
+                    case "-i": Insert(args[2], args[3], Game, currentLinePosition); break;
 					case "-b": Balance(args[2], args[3], args[4]); break; // New command: -b <listfile> <inputfolder> <outputfolder>
                     default: TextOut.PrintError("Invalid command!"); return;
                 }
@@ -209,17 +211,15 @@ namespace DATMovieTool
                 Subtitles = new List<SubtitlePacket>();
             }
         }
-
-        private static void Extract(string Movie, string Output, MGSGame Game)
+        
+        private static void Extract(string Movie, string Output, MGSGame Game, int currentLinePosition)
         {
             Directory.CreateDirectory(Output);
             MGSText.Initialize();
-
             using (FileStream Input = new FileStream(Movie, FileMode.Open))
             {
                 MovieSubtitle Out = new MovieSubtitle();
                 EndianBinaryReader Reader = null;
-
                 switch (Game)
                 {
                     case MGSGame.MGSTS:
@@ -229,19 +229,21 @@ namespace DATMovieTool
                     case MGSGame.MGS3: Reader = new EndianBinaryReader(Input, Endian.Little); break;
                     case MGSGame.MGS4: Reader = new EndianBinaryReader(Input, Endian.Big); break;
                 }
-
                 int Index = 0;
+                string currentXmlFile = null; // Track current XML file
+        
                 while (Input.Position < Input.Length)
                 {
                     StreamPacket Packet = StreamPacket.FromStream(Reader, Game);
-
                     switch (Packet.Type)
                     {
-                        case PacketType.Subtitle: Out.Subtitles.Add((SubtitlePacket)Packet); break;
+                        case PacketType.Subtitle: 
+                            Out.Subtitles.Add((SubtitlePacket)Packet); 
+                            break;
                         case PacketType.EndOfStream:
                             string XmlName = string.Format("Subtitle_{0:D5}.xml", Index++);
+                            currentXmlFile = XmlName; // Update current file name
                             string FileName = Path.Combine(Output, XmlName);
-
                             XmlSerializerNamespaces NameSpaces = new XmlSerializerNamespaces();
                             NameSpaces.Add(string.Empty, string.Empty);
                             XmlWriterSettings Settings = new XmlWriterSettings
@@ -249,32 +251,32 @@ namespace DATMovieTool
                                 Encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false),
                                 Indent = true
                             };
-
                             XmlSerializer Serializer = new XmlSerializer(typeof(MovieSubtitle));
                             using (FileStream OutputStream = new FileStream(FileName, FileMode.Create))
                             {
                                 XmlWriter Writer = XmlWriter.Create(OutputStream, Settings);
                                 Serializer.Serialize(Writer, Out, NameSpaces);
                             }
-
                             Out.Subtitles.Clear();
                             break;
                     }
-
-                    ReportProgress((float)Input.Position / Input.Length);
+                    // Fixed ReportProgress call with 3 parameters
+                    ReportProgress(Input.Position, Input.Length, currentXmlFile, currentLinePosition);
                 }
+				Console.Write(Environment.NewLine);
+				TextOut.PrintSuccess("Subtitles Expotred!");
             }
         }
-
-        private static void Insert(string Movie, string Input, MGSGame Game)
+        
+        
+		
+		private static void Insert(string Movie, string Input, MGSGame Game, int currentLinePosition)
         {
             string[] Files = Directory.GetFiles(Input);
             MGSText.Initialize();
-
             string NewFile = Path.GetTempFileName();
             FileStream In = new FileStream(Movie, FileMode.Open);
             FileStream Out = new FileStream(NewFile, FileMode.Create);
-
             Endian Endian = Endian.Default;
             switch (Game)
             {
@@ -285,38 +287,47 @@ namespace DATMovieTool
                 case MGSGame.MGS3: Endian = Endian.Little; break;
                 case MGSGame.MGS4: Endian = Endian.Big; break;
             }
-
             EndianBinaryReader Reader = new EndianBinaryReader(In, Endian);
             EndianBinaryWriter Writer = new EndianBinaryWriter(Out, Endian);
-
             int Index = 0;
             int SubIndex = 0;
             MovieSubtitle Subtitle = GetSubtitle(Files[0]);
+            string currentXmlFile = Files[0]; // Track current XML file
+        
             while (In.Position < In.Length)
             {
                 StreamPacket Packet = StreamPacket.FromStream(Reader, Game);
-
                 switch (Packet.Type)
                 {
-                    case PacketType.Subtitle: SubtitlePacket.ToStream(Writer, Subtitle.Subtitles[SubIndex++], Game); break;
+                    case PacketType.Subtitle: 
+                        SubtitlePacket.ToStream(Writer, Subtitle.Subtitles[SubIndex++], Game); 
+                        break;
                     case PacketType.EndOfStream:
-                        if (++Index < Files.Length) Subtitle = GetSubtitle(Files[Index]);
+                        if (++Index < Files.Length) 
+                        {
+                            Subtitle = GetSubtitle(Files[Index]);
+                            currentXmlFile = Files[Index]; // Update current file
+                        }
                         SubIndex = 0;
                         break;
                 }
-
-                if (Packet.Type != PacketType.Subtitle) StreamPacket.ToStream(Writer, Packet, Game);
-
-                ReportProgress((float)In.Position / In.Length);
+                if (Packet.Type != PacketType.Subtitle) 
+                    StreamPacket.ToStream(Writer, Packet, Game);
+                
+                // Fixed ReportProgress call with 3 parameters
+                ReportProgress(In.Position, In.Length, currentXmlFile, currentLinePosition);
             }
-
+			Console.Write(Environment.NewLine);
+			TextOut.PrintSuccess("Subtitles Impotred!");
+			Console.Write(Environment.NewLine);
+			TextOut.PrintWarning("Replacing file, please wait...");
             In.Close();
             Out.Close();
-
             File.Delete(Movie);
             File.Move(NewFile, Movie);
             File.Delete(NewFile);
         }
+        
 
         private static MovieSubtitle GetSubtitle(string FileName)
         {
@@ -328,32 +339,40 @@ namespace DATMovieTool
         }
 
         static bool FirstPercentage = true;
-        private static void ReportProgress(float Percentage)
+        private static void ReportProgress(
+            long Position, 
+            long Length, 
+            string CurrentFile = null, 
+            int currentLinePosition = 0)
         {
-            const int BarSize = 40;
-            int Progress = (int)(Percentage * BarSize);
-
-            if (FirstPercentage)
+            // Calculate progress percentage
+            double progressPercentage = (double)Position / Length * 100;
+        
+            // Clamp currentLinePosition to console buffer height
+            int maxLine = Console.BufferHeight - 1;
+            int safeLine = Math.Min(currentLinePosition, maxLine);
+        
+            // Position progress bar
+            Console.CursorLeft = 0;
+            Console.CursorTop = safeLine;
+            Console.Write(new string(' ', Console.WindowWidth)); // Clear the line
+            Console.CursorLeft = 0;
+        
+            // Draw progress bar
+            int progressBarWidth = Console.WindowWidth / 3;
+            int filledBars = (int)(progressBarWidth * (progressPercentage / 100));
+            string progressBar = new string('█', filledBars) + new string(' ', progressBarWidth - filledBars);
+            Console.Write($"[{progressBar}] {progressPercentage:F0}%");
+        
+            // Position file name on the next line (if within buffer)
+            if (CurrentFile != null && safeLine + 1 <= maxLine)
             {
-                Console.BackgroundColor = ConsoleColor.DarkGray;
-                for (int Index = 0; Index < BarSize; Index++) Console.Write(" ");
-                Console.ResetColor();
-                Console.CursorTop++;
-                FirstPercentage = false;
+                Console.CursorLeft = 0;
+                Console.CursorTop = safeLine + 1;
+                Console.Write(new string(' ', Console.WindowWidth)); // Clear the line
+                Console.CursorLeft = 0;
+                Console.Write($"{CurrentFile}");
             }
-
-            Console.CursorTop--;
-
-            if (Percentage > 0)
-            {
-                Console.CursorLeft = (int)(Percentage * (BarSize - 1));
-                Console.BackgroundColor = ConsoleColor.White;
-                Console.Write(" ");
-                Console.ResetColor();
-            }
-
-            Console.CursorLeft = BarSize + 1;
-            Console.WriteLine((int)(Percentage * 100) + "%");
         }
 
         public static void ClearLine()
